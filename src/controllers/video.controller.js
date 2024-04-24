@@ -1,3 +1,4 @@
+import { isValidObjectId } from "mongoose";
 import { ApiError } from "../utils/ApiError.js";
 import { Video } from "../models/video.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -6,7 +7,6 @@ import {
   deleteFromCloudinary,
   uploadOnCloudinary,
 } from "../utils/cloudinary.js";
-import { isValidObjectId } from "mongoose";
 
 const publishAVideo = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
@@ -39,8 +39,14 @@ const publishAVideo = asyncHandler(async (req, res) => {
   const video = await Video.create({
     title,
     description,
-    videoFile: videoFile.url,
-    thumbnail: thumbnail.url,
+    videoFile: {
+      url: videoFile.url,
+      public_id: videoFile.public_id,
+    },
+    thumbnail: {
+      url: thumbnail.url,
+      public_id: thumbnail.public_id,
+    },
     duration: videoFile.duration,
     owner: req.user?._id,
     isPublished: false,
@@ -82,7 +88,7 @@ const updateVideo = asyncHandler(async (req, res) => {
     );
   }
 
-  const thumbnailToDelete = video.thumbnail;
+  const thumbnailToDelete = video.thumbnail.public_id;
 
   const thumbnailLocalPath = req.file?.path;
 
@@ -102,7 +108,10 @@ const updateVideo = asyncHandler(async (req, res) => {
       $set: {
         title,
         description,
-        thumbnail: thumbnail.url,
+        thumbnail: {
+          public_id: thumbnail.public_id,
+          url: thumbnail.url,
+        },
       },
     },
     { new: true }
