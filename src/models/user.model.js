@@ -26,11 +26,17 @@ const userSchema = new Schema(
       index: true,
     },
     avatar: {
-      type: String,
+      type: {
+        public_id: String,
+        url: String,
+      },
       required: true,
     },
     coverImage: {
-      type: String,
+      type: {
+        public_id: String,
+        url: String,
+      },
     },
     watchHistory: [
       {
@@ -86,4 +92,4 @@ userSchema.methods.generateRefreshToken = function () {
   );
 };
 
-export const User = model("User", userSchema);
+export const User = mongoose.model("User", userSchema);
