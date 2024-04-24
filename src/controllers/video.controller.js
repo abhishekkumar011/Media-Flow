@@ -2,7 +2,11 @@ import { ApiError } from "../utils/ApiError.js";
 import { Video } from "../models/video.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {
+  deleteFromCloudinary,
+  uploadOnCloudinary,
+} from "../utils/cloudinary.js";
+import { isValidObjectId } from "mongoose";
 
 const publishAVideo = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
@@ -53,4 +57,68 @@ const publishAVideo = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, videoUploaded, "video uploaded successfully"));
 });
 
-export { publishAVideo };
+const updateVideo = asyncHandler(async (req, res) => {
+  const { title, description } = req.body;
+  const { videoId } = req.params;
+
+  if (!isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid videoId");
+  }
+
+  if (!(title && description)) {
+    throw new ApiError(400, "title and decscription are required");
+  }
+
+  const video = await Video.findById(videoId);
+
+  if (!video) {
+    throw new ApiError(400, "Video not found");
+  }
+
+  if (video?.owner.toString() !== req.user?._id.toString()) {
+    throw new ApiError(
+      400,
+      "You can't edit this video as you are not the owner"
+    );
+  }
+
+  const thumbnailToDelete = video.thumbnail;
+
+  const thumbnailLocalPath = req.file?.path;
+
+  if (!thumbnailLocalPath) {
+    throw new ApiError(400, "thumbnail is required");
+  }
+
+  const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
+
+  if (!thumbnail.url) {
+    throw new ApiError(400, "thumbnail file is not found");
+  }
+
+  const updatedVideo = await Video.findByIdAndUpdate(
+    videoId,
+    {
+      $set: {
+        title,
+        description,
+        thumbnail: thumbnail.url,
+      },
+    },
+    { new: true }
+  );
+
+  if (!updatedVideo) {
+    throw new ApiError(500, "Failed to update video");
+  }
+
+  if (updatedVideo) {
+    await deleteFromCloudinary(thumbnailToDelete);
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedVideo, "video successfully updated"));
+});
+
+export { publishAVideo, updateVideo };

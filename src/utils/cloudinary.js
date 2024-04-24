@@ -24,7 +24,7 @@ const uploadOnCloudinary = async (localFilePath) => {
   }
 };
 
-const deleteOnCloudinary = async (oldUrl) => {
+const deleteFromCloudinary = async (oldUrl) => {
   if (!oldUrl) return null;
 
   try {
@@ -36,4 +36,4 @@ const deleteOnCloudinary = async (oldUrl) => {
   }
 };
 
-export { uploadOnCloudinary, deleteOnCloudinary };
+export { uploadOnCloudinary, deleteFromCloudinary };
