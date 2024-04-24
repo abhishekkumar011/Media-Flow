@@ -130,4 +130,38 @@ const updateVideo = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, updatedVideo, "video successfully updated"));
 });
 
-export { publishAVideo, updateVideo };
+const deleteVideo = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+
+  if (!isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid videoId");
+  }
+
+  const video = await Video.findById(videoId);
+
+  if (!video) {
+    throw new ApiError(404, "No video found");
+  }
+
+  if (video?.owner.toString() !== req.user?._id.toString()) {
+    throw new ApiError(
+      400,
+      "You can't delete this video as you are not the owner"
+    );
+  }
+
+  const videoDeleted = await Video.findByIdAndDelete(video?._id);
+
+  if (!videoDeleted) {
+    throw new ApiError(400, "Faild to delete the video");
+  }
+
+  await deleteFromCloudinary(video.videoFile.public_id, "video");
+  await deleteFromCloudinary(video.thumbnail.public_id);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "video successfully deleted"));
+});
+
+export { publishAVideo, updateVideo, deleteVideo };
