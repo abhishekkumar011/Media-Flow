@@ -8,6 +8,10 @@ const addComment = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   const { content } = req.body;
 
+  if (!videoId?.trim()) {
+    throw new ApiError(400, "Invalid videoId");
+  }
+
   if (!content) {
     throw new ApiError(400, "Content is required");
   }
@@ -36,6 +40,10 @@ const addComment = asyncHandler(async (req, res) => {
 const updateComment = asyncHandler(async (req, res) => {
   const { commentId } = req.params;
   const { content } = req.body;
+
+  if (!commentId.trim()) {
+    throw new ApiError(400, "Invalid commentId");
+  }
 
   if (!content) {
     throw new ApiError(400, "Content is required");
@@ -72,6 +80,10 @@ const updateComment = asyncHandler(async (req, res) => {
 
 const deleteComment = asyncHandler(async (req, res) => {
   const { commentId } = req.params;
+
+  if (!commentId.trim()) {
+    throw new ApiError(400, "Invalid commentId");
+  }
 
   const comment = await Comment.findById(commentId);
 

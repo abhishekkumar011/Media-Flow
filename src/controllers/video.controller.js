@@ -1,4 +1,3 @@
-import { isValidObjectId } from "mongoose";
 import { ApiError } from "../utils/ApiError.js";
 import { Video } from "../models/video.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -67,7 +66,7 @@ const updateVideo = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
   const { videoId } = req.params;
 
-  if (!isValidObjectId(videoId)) {
+  if (!videoId.trim()) {
     throw new ApiError(400, "Invalid videoId");
   }
 
@@ -133,7 +132,7 @@ const updateVideo = asyncHandler(async (req, res) => {
 const deleteVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
 
-  if (!isValidObjectId(videoId)) {
+  if (!videoId.trim()) {
     throw new ApiError(400, "Invalid videoId");
   }
 
@@ -167,7 +166,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
 const togglePublishStatus = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
 
-  if (!isValidObjectId(videoId)) {
+  if (!videoId.trim()) {
     throw new ApiError(400, "Invalid Video");
   }
 
