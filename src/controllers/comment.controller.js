@@ -33,4 +33,41 @@ const addComment = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, comment, "Comment successfully added"));
 });
 
-export { addComment };
+const updateComment = asyncHandler(async (req, res) => {
+  const { commentId } = req.params;
+  const { content } = req.body;
+
+  if (!content) {
+    throw new ApiError(400, "Content is required");
+  }
+
+  const comment = await Comment.findById(commentId);
+
+  if (!comment) {
+    throw new ApiError(404, "Comment not found");
+  }
+
+  if (comment?.owner.toString() !== req.user?._id.toString()) {
+    throw new ApiError(400, "Only comment owner can edit their comment");
+  }
+
+  const updateComment = await Comment.findByIdAndUpdate(
+    comment?._id,
+    {
+      $set: {
+        content,
+      },
+    },
+    { new: true }
+  );
+
+  if (!updateComment) {
+    throw new ApiError(500, "Failed to edit comment");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updateComment, "Comment successfully edited"));
+});
+
+export { addComment, updateComment };
