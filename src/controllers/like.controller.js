@@ -1,14 +1,19 @@
 import mongoose from "mongoose";
 import { Like } from "../models/like.model.js";
 import { ApiError } from "../utils/ApiError.js";
+import { Video } from "../models/video.model.js";
+import { Tweet } from "../models/tweet.models.js";
+import { Comment } from "../models/comment.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
 
-  if (!videoId.trim()) {
-    throw new ApiError(400, "Invalid videoId");
+  const video = await Video.findById(videoId);
+
+  if (!video) {
+    throw new ApiError(400, "Video not found");
   }
 
   const likedAlready = await Like.findOne({
@@ -33,8 +38,10 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
 const toggleCommentLike = asyncHandler(async (req, res) => {
   const { commentId } = req.params;
 
-  if (!commentId.trim()) {
-    throw new ApiError(400, "Invalid commentId");
+  const comment = await Comment.findById(commentId);
+
+  if (!comment) {
+    throw new ApiError(400, "Comment not found");
   }
 
   const likedAlready = await Like.findOne({
@@ -59,8 +66,10 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 const toggleTweetLike = asyncHandler(async (req, res) => {
   const { tweetId } = req.params;
 
-  if (!tweetId.trim()) {
-    throw new ApiError(400, "Invalid tweetId");
+  const tweet = await Tweet.findById(tweetId);
+
+  if (!tweet) {
+    throw new ApiError(400, "Tweet not found");
   }
 
   const likedAlready = await Like.findOne({
