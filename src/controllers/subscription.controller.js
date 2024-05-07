@@ -53,7 +53,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
   const channel = await User.findById(channelId);
 
   if (!channel) {
-    throw new ApiError(400, "Channel not found");
+    throw new ApiError(404, "Channel not found");
   }
 
   const subscribers = await Subscription.aggregate([
@@ -125,4 +125,90 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     );
 });
 
-export { toggleSubscription, getUserChannelSubscribers };
+const getSubscribedChannels = asyncHandler(async (req, res) => {
+  const { subscriberId } = req.params;
+
+  if (!subscriberId) {
+    throw new ApiError(400, "SubscrberId is required");
+  }
+
+  const subscriber = await User.findById(subscriberId);
+
+  if (!subscriber) {
+    throw new ApiError(404, "subcriber not found");
+  }
+
+  const subscribedChannels = await Subscription.aggregate([
+    {
+      $match: {
+        subscriber: new mongoose.Types.ObjectId(subscriberId),
+      },
+    },
+
+    {
+      $lookup: {
+        from: "users",
+        localField: "channel",
+        foreignField: "_id",
+        as: "subscribedChannel",
+        pipeline: [
+          {
+            $lookup: {
+              from: "videos",
+              localField: "_id",
+              foreignField: "owner",
+              as: "videos",
+            },
+          },
+
+          {
+            $addFields: {
+              latestVideo: {
+                $last: "$videos",
+              },
+            },
+          },
+        ],
+      },
+    },
+
+    {
+      $unwind: "$subscribedChannel",
+    },
+
+    {
+      $project: {
+        _id: 0,
+        subscribedChannel: {
+          _id: 1,
+          username: 1,
+          fullName: 1,
+          "avatar.url": 1,
+          latestVideo: {
+            _id: 1,
+            "videoFile.url": 1,
+            "thumnail.url": 1,
+            owner: 1,
+            title: 1,
+            description: 1,
+            duration: 1,
+            createdAt: 1,
+            views: 1,
+          },
+        },
+      },
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        subscribedChannels,
+        "subscribed channels successfully fetched"
+      )
+    );
+});
+
+export { toggleSubscription, getUserChannelSubscribers, getSubscribedChannels };
