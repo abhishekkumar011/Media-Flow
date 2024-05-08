@@ -65,4 +65,32 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     );
 });
 
-export { createPlaylist, updatePlaylist };
+const deletePlaylist = asyncHandler(async (req, res) => {
+  const { playlistId } = req.params;
+
+  if (!playlistId) {
+    throw new ApiError(400, "playlistId is required");
+  }
+
+  const playlist = await Playlist.findById(playlistId);
+
+  if (!playlist) {
+    throw new ApiError(404, "Playlist not found");
+  }
+
+  if (playlist.owner.toString() !== req.user?._id.toString()) {
+    throw new ApiError(400, "Only owner can delete this playlist");
+  }
+
+  const deletedPlaylist = await Playlist.findByIdAndDelete(playlistId);
+
+  if (!deletedPlaylist) {
+    throw new ApiError(500, "Playlist not deleted");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "playlist successfully deleted"));
+});
+
+export { createPlaylist, updatePlaylist, deletePlaylist };
