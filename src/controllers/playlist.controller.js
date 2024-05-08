@@ -1,4 +1,5 @@
 import { ApiError } from "../utils/ApiError.js";
+import { Video } from "../models/video.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Playlist } from "../models/playlist.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -93,4 +94,42 @@ const deletePlaylist = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "playlist successfully deleted"));
 });
 
-export { createPlaylist, updatePlaylist, deletePlaylist };
+const addVideoToPlaylist = asyncHandler(async (req, res) => {
+  const { playlistId, videoId } = req.params;
+
+  if (!playlistId || !videoId) {
+    throw new ApiError(400, "playlistId and videoId are required");
+  }
+
+  const playlist = await Playlist.findById(playlistId);
+  const video = await Video.findById(videoId);
+
+  if (!playlist) {
+    throw new ApiError(404, "playlist not found");
+  }
+
+  if (!video) {
+    throw new ApiError(404, "video not found");
+  }
+
+  if (
+    playlist.owner.toString() &&
+    video.owner.toString() !== req.user?._id.toString()
+  ) {
+    throw new ApiError(400, "only owner can add video to thier playlist");
+  }
+
+  const updatedPlaylist = await Playlist.findByIdAndUpdate(
+    playlistId,
+    {
+      $addToSet: {
+        videos: videoId,
+      },
+    },
+    { new: true }
+  );
+
+  return res.status(200).json(new ApiResponse(200, updatedPlaylist,"Video successfully added"));
+});
+
+export { createPlaylist, updatePlaylist, deletePlaylist, addVideoToPlaylist };
