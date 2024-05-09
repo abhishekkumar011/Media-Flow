@@ -129,7 +129,63 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
     { new: true }
   );
 
-  return res.status(200).json(new ApiResponse(200, updatedPlaylist,"Video successfully added"));
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedPlaylist, "Video successfully added"));
 });
 
-export { createPlaylist, updatePlaylist, deletePlaylist, addVideoToPlaylist };
+const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
+  const { playlistId, videoId } = req.params;
+
+  if (!playlistId || !videoId) {
+    throw new ApiError(400, "playlistId and videoId are required");
+  }
+
+  const playlist = await Playlist.findById(playlistId);
+  const video = await Video.findById(videoId);
+
+  if (!playlist) {
+    throw new ApiError(404, "playlist not found");
+  }
+
+  if (!video) {
+    throw new ApiError(404, "video not found");
+  }
+
+  if (
+    playlist.owner.toString() &&
+    video.owner.toString() !== req.user?._id.toString()
+  ) {
+    throw new ApiError(400, "only owner can delete video to thier playlist");
+  }
+
+  const updatedPlaylist = await Playlist.findByIdAndUpdate(
+    playlistId,
+    {
+      $pull: { videos: videoId },
+    },
+    { new: true }
+  );
+
+  if (!updatedPlaylist) {
+    throw new ApiError(500, "video not removed");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        updatedPlaylist,
+        "video successfully removed from playlist "
+      )
+    );
+});
+
+export {
+  createPlaylist,
+  updatePlaylist,
+  deletePlaylist,
+  addVideoToPlaylist,
+  removeVideoFromPlaylist,
+};
