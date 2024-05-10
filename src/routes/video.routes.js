@@ -7,24 +7,28 @@ import {
   publishAVideo,
   togglePublishStatus,
   getVideoById,
+  getAllVideos,
 } from "../controllers/video.controller.js";
 
 const router = Router();
 router.use(verifyJWT);
 
-router.route("/").post(
-  upload.fields([
-    {
-      name: "videoFile",
-      maxCount: 1,
-    },
-    {
-      name: "thumbnail",
-      maxCount: 1,
-    },
-  ]),
-  publishAVideo
-);
+router
+  .route("/")
+  .get(getAllVideos)
+  .post(
+    upload.fields([
+      {
+        name: "videoFile",
+        maxCount: 1,
+      },
+      {
+        name: "thumbnail",
+        maxCount: 1,
+      },
+    ]),
+    publishAVideo
+  );
 
 router
   .route("/v/:videoId")

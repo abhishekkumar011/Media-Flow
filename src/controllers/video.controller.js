@@ -336,10 +336,98 @@ const getVideoById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, video[0], "video successfully fetched"));
 });
 
+const getAllVideos = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
+
+  const videoPipeline = [];
+
+  if (query) {
+    videoPipeline.push({
+      $search: {
+        index: "search-videos",
+        text: {
+          query: query,
+          path: ["title", "description"],
+        },
+      },
+    });
+  }
+
+  if (userId) {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new ApiError(404, "user does not exists");
+    }
+
+    videoPipeline.push({
+      $match: {
+        owner: new mongoose.Types.ObjectId(userId),
+      },
+    });
+  }
+
+  videoPipeline.push({
+    $match: {
+      isPublished: true,
+    },
+  });
+
+  if (sortBy && sortType) {
+    videoPipeline.push({
+      $sort: {
+        [sortBy]: sortType === "asc" ? 1 : -1,
+      },
+    });
+  } else {
+    videoPipeline.push({
+      $sort: {
+        createdAt: -1,
+      },
+    });
+  }
+
+  videoPipeline.push(
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "ownerDetails",
+        pipeline: [
+          {
+            $project: {
+              username: 1,
+              "avatar.url": 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: "$ownerDetails",
+    }
+  );
+
+  const videoAggregate = Video.aggregate(videoPipeline);
+
+  const options = {
+    page: parseInt(page, 10),
+    limit: parseInt(limit, 10),
+  };
+
+  const video = await Video.aggregatePaginate(videoAggregate, options);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, video, "Videos successfully fetched"));
+});
+
 export {
   updateVideo,
   deleteVideo,
-  getVideoById,        
+  getVideoById,
+  getAllVideos,
   publishAVideo,
   togglePublishStatus,
 };
