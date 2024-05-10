@@ -290,6 +290,16 @@ const getPlaylistById = asyncHandler(async (req, res) => {
     },
 
     {
+      $unwind: "$videos",
+    },
+    
+    {
+      $match: {
+        "videos.isPublished": true,
+      },
+    },
+
+    {
       $project: {
         name: 1,
         description: 1,
