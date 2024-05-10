@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { Video } from "../models/video.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -167,10 +169,6 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     { new: true }
   );
 
-  if (!updatedPlaylist) {
-    throw new ApiError(500, "video not removed");
-  }
-
   return res
     .status(200)
     .json(
@@ -182,10 +180,68 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     );
 });
 
+const getUserPlaylists = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  if (!userId) {
+    throw new ApiError(400, "userId is required");
+  }
+
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new ApiError(404, "user is not found");
+  }
+
+  const playlist = await Playlist.aggregate([
+    {
+      $match: {
+        owner: new mongoose.Types.ObjectId(userId),
+      },
+    },
+
+    {
+      $lookup: {
+        from: "videos",
+        localField: "videos",
+        foreignField: "_id",
+        as: "videos",
+      },
+    },
+
+    {
+      $addFields: {
+        totalVideos: {
+          $size: "$videos",
+        },
+        totalViews: {
+          $sum: "$videos.views",
+        },
+      },
+    },
+
+    {
+      $project: {
+        _id: 1,
+        name: 1,
+        description: 1,
+        totalVideos: 1,
+        totalViews: 1,
+        updatedAt: 1,
+      },
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, playlist, "user playlist successfully fetched"));
+});
+
 export {
   createPlaylist,
   updatePlaylist,
   deletePlaylist,
   addVideoToPlaylist,
   removeVideoFromPlaylist,
+  getUserPlaylists,
 };
